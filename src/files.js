@@ -4,6 +4,43 @@
 const tcprelay = `
 
 import net from 'net';
+import rawr from 'rawr';
+import { EventEmitter } from 'events';
+
+const sockets = {};
+const transport = new EventEmitter();
+
+transport.send = (data) => {
+  // console.log('tcprelay send', data);
+  // input.write();
+  process.stdout.write(JSON.stringify(data));
+};
+
+process.stdin.on('data', (data) => {
+  try {
+    const obj = JSON.parse(('' + data).trim());
+    transport.emit('rpc', obj);
+  } catch (e) {
+  }
+  // data = data.toString().toUpperCase();
+  // process.stdout.write(data);
+});
+
+function connect(port, host, socketId) {
+  const socket = new net.Socket();
+  socket.id = socketId;
+  sockets[socket.id] = socket;
+  return new Promise((accept, reject) => {
+    socket.connect(port, host, () => {
+      resolve({ ok: 'ok', socketId });
+    });
+  });
+}
+
+const peer = rawr({ transport });
+
+
+
 // const PORT = 9000;
 
 // const socketServer = net.createServer(async (socket) => {

@@ -125,6 +125,7 @@ function App() {
         console.log('net', net);
         const con = await hsync.dynamicConnect(null, true, { net });
         console.log('hsync con', con);
+        console.log('connect on', con.webUrl);
       }
     }
     run();

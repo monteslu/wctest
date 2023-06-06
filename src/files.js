@@ -1,5 +1,50 @@
 /** @satisfies {import('@webcontainer/api').FileSystemTree} */
 
+
+const tcprelay = `
+
+import net from 'net';
+// const PORT = 9000;
+
+// const socketServer = net.createServer(async (socket) => {
+//   socket.on('data', async (data) => {
+//     console.log('received', data.toString());
+//     socket.write(Buffer.from('back atcha, ' + data.toString()));
+//   });
+
+//   socket.on('close', () => {
+//     console.log('closed');
+//   });
+
+//   socket.on('error', (error) => {
+//     console.log('error', error);
+//   });
+
+// });
+
+//socketServer.listen(PORT);
+
+// console.log('echo server listening on', PORT);
+
+// setTimeout(() => {
+//   const socket = net.connect(PORT);
+//   socket.on('data', (data) => {
+//     console.log('client received', data.toString());
+//   });
+//   socket.on('close', () => {
+//     console.log('client closed');
+//   });
+//   socket.on('error', (error) => {
+//     console.log('client error', error);
+//   });
+//   // socket.write(Buffer.from('hello'));
+//   // // socket.end();
+//   // setInterval(() => {
+//   //   socket.write(Buffer.from('hello' + Math.random()));
+//   // }, 300);
+// }, 1000);
+`;
+
 export const files = {
   'index.js': {
     file: {
@@ -27,7 +72,8 @@ app.listen(port, () => {
   "type": "module",
   "dependencies": {
     "express": "latest",
-    "nodemon": "latest"
+    "nodemon": "latest",
+    "rawr": "latest"
   },
   "scripts": {
     "start": "nodemon --watch './' index.js"
@@ -74,9 +120,14 @@ console.log('echo server listening on', PORT);
 
     setInterval(() => {
       process.stdout.write('' + Math.random());
-    }, 1000);
+    }, 60);
 
 `,
+    },
+  },
+  'tcprelay.js': {
+    file: {
+      contents: tcprelay,
     },
   },
 };

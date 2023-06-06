@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Terminal } from 'xterm'
+import hsync from 'hsync/hsync-web';
 import 'xterm/css/xterm.css';
 import { WebContainer } from '@webcontainer/api';
 
 import './App.css';
 import { files } from './files';
+import createNet from './webcont-net';
 
 let webcontainerInstance;
 let started = false;
@@ -72,23 +74,23 @@ function App() {
           return shellProcess;
         };
 
-        async function startIo(terminal) {
-          const shellProcess = await webcontainerInstance.spawn('node', ['io.js']);
-          shellProcess.output.pipeTo(
-            new WritableStream({
-              write(data) {
-                terminal.write(data);
-              },
-            })
-          );
+        // async function startIo(terminal) {
+        //   const shellProcess = await webcontainerInstance.spawn('node', ['io.js']);
+        //   shellProcess.output.pipeTo(
+        //     new WritableStream({
+        //       write(data) {
+        //         terminal.write(data);
+        //       },
+        //     })
+        //   );
         
-          const input = shellProcess.input.getWriter();
-          terminal.onData((data) => {
-            input.write(data);
-          });
+        //   const input = shellProcess.input.getWriter();
+        //   terminal.onData((data) => {
+        //     input.write(data);
+        //   });
         
-          return shellProcess;
-        };
+        //   return shellProcess;
+        // };
 
         webcontainerInstance = await WebContainer.boot();
 
@@ -111,14 +113,18 @@ function App() {
         terminal.open(terminalEl.current);
         await startShell(terminal);
 
-        const terminal2 = new Terminal({
-          convertEol: true,
-        });
-        terminal2.open(terminalE2.current);
-        await startIo(terminal2);
+        // const terminal2 = new Terminal({
+        //   convertEol: true,
+        // });
+        // terminal2.open(terminalE2.current);
+        // await startIo(terminal2);
         
 
         await startDevServer();
+        const net = await createNet(webcontainerInstance);
+        console.log('net', net);
+        const con = await hsync.dynamicConnect(null, true, { net });
+        console.log('hsync con', con);
       }
     }
     run();

@@ -17,24 +17,48 @@ async function writeIndexJS(content) {
 
 function App() {
   const [taContent, setTaContent] = useState(files['index.js'].file.contents);
+  const [hsycnUrl, setHsyncUrl] = useState(null);
   const iframeEl = useRef(null);
   const terminalEl = useRef(null);
-  const terminalE2 = useRef(null);
+  const terminalEl2 = useRef(null);
   useEffect(() => {
     console.log('useEffect');
+    let con;
     async function run() {
       console.log('run');
       if (!started) {
         started = true;
-        
+
+        const terminal = new Terminal({
+          convertEol: true,
+        });
+        terminal.open(terminalEl.current);
+        const terminal2 = new Terminal({
+          convertEol: true,
+        });
+        terminal2.open(terminalEl2.current);
+
+        const t1Stream = new WritableStream({
+          write(data) {
+            terminal.write(data);
+          },
+        });
+
+        const installStream = new WritableStream({
+          write(data) {
+            terminal2.write(data);
+          },
+        });
+        const serverStream = new WritableStream({
+          write(data) {
+            terminal2.write(data);
+          },
+        });
+
         async function installDependencies() {
           // Install dependencies
           const installProcess = await webcontainerInstance.spawn('npm', ['install']);
-          installProcess.output.pipeTo(new WritableStream({
-            write(data) {
-              console.log(data);
-            }
-          }));
+          installProcess.output.pipeTo(installStream);
           // Wait for install command to exit
           return installProcess.exit;
         }
@@ -43,28 +67,21 @@ function App() {
           // Run `npm run start` to start the Express app
           const serverProcess = await webcontainerInstance.spawn('npm', ['run', 'start']);
 
-          serverProcess.output.pipeTo(new WritableStream({
-            write(data) {
-              console.log(data);
-            }
-          }));
+          serverProcess.output.pipeTo(serverStream);
         
           // Wait for `server-ready` event
           webcontainerInstance.on('server-ready', (port, url) => {
             console.log(`Server is listening on port ${port} and is available at ${url}`);
             iframeEl.current.src = url;
+            setHsyncUrl(con.webUrl);
           });
+
+          return serverProcess;
         }
 
-        async function startShell(terminal) {
+        async function startShell() {
           const shellProcess = await webcontainerInstance.spawn('jsh');
-          shellProcess.output.pipeTo(
-            new WritableStream({
-              write(data) {
-                terminal.write(data);
-              },
-            })
-          );
+          shellProcess.output.pipeTo(t1Stream);
         
           const input = shellProcess.input.getWriter();
           terminal.onData((data) => {
@@ -74,56 +91,23 @@ function App() {
           return shellProcess;
         };
 
-        // async function startIo(terminal) {
-        //   const shellProcess = await webcontainerInstance.spawn('node', ['io.js']);
-        //   shellProcess.output.pipeTo(
-        //     new WritableStream({
-        //       write(data) {
-        //         terminal.write(data);
-        //       },
-        //     })
-        //   );
-        
-        //   const input = shellProcess.input.getWriter();
-        //   terminal.onData((data) => {
-        //     input.write(data);
-        //   });
-        
-        //   return shellProcess;
-        // };
-
         webcontainerInstance = await WebContainer.boot();
 
         await webcontainerInstance.mount(files);
         console.log(webcontainerInstance);
-        const packageJSON = await webcontainerInstance.fs.readFile('package.json', 'utf-8');
-        console.log(packageJSON);
+        // const packageJSON = await webcontainerInstance.fs.readFile('package.json', 'utf-8');
+        // console.log(packageJSON);
         const exitCode = await installDependencies();
         if (exitCode !== 0) {
           throw new Error('Installation failed');
         };
-
-        webcontainerInstance.on('port', (port, b, c, d) => {
-          console.log(`something is listening on port ${port} and is available at ${b} ${c} ${d}`);
-        });
-
-        const terminal = new Terminal({
-          convertEol: true,
-        });
-        terminal.open(terminalEl.current);
-        await startShell(terminal);
-
-        // const terminal2 = new Terminal({
-        //   convertEol: true,
-        // });
-        // terminal2.open(terminalE2.current);
-        // await startIo(terminal2);
-        
-
+        await startShell();
         await startDevServer();
+
         const net = await createNet(webcontainerInstance);
+
         console.log('net', net);
-        const con = await hsync.dynamicConnect(null, true, { net });
+        con = await hsync.dynamicConnect(null, true, { net });
         console.log('hsync con', con);
         console.log('connect on', con.webUrl);
       }
@@ -150,8 +134,21 @@ function App() {
           />
         </div>
       </div>
-      <div className="terminal" ref={terminalEl}></div>
-      <div className="terminal" ref={terminalE2}></div>
+      <div style={ { margin: '5px' }}>
+        {hsycnUrl ? (
+          <a href={hsycnUrl} target="_blank" rel="noopener noreferrer">
+            Open here: {hsycnUrl}
+          </a>
+        ) : ''}
+      </div>
+      <div className="terminal-container">
+        <div>jsh shell:</div>
+        <div className="terminal" ref={terminalEl}></div>
+      </div>
+      <div className="terminal-container">
+        <div>install; run server:</div>
+        <div className="terminal" ref={terminalEl2}></div>
+      </div>
     </div>
   );
 }

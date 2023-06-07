@@ -12,7 +12,7 @@ export default async function createNet(webcontainerInstance) {
   const transport = new EventEmitter();
 
   async function tcprelay() {
-    await webcontainerInstance.spawn('node', ['echoserver.js']);
+    // await webcontainerInstance.spawn('node', ['echoserver.js']);
     const shellProcess = await webcontainerInstance.spawn('node', ['tcprelay.js']);
     shellProcess.output.pipeTo(
       new WritableStream({
@@ -50,7 +50,7 @@ export default async function createNet(webcontainerInstance) {
     }
   });
 
-  peer.notifiers.on('close', (socketId) => {
+  peer.notifiers.onclose((socketId) => {
     const socket = sockets[socketId];
     if (socket) {
       socket.emit('close', {});

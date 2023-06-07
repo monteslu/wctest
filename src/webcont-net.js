@@ -12,18 +12,19 @@ export default async function createNet(webcontainerInstance) {
   const transport = new EventEmitter();
 
   async function tcprelay() {
+    await webcontainerInstance.spawn('node', ['echoserver.js']);
     const shellProcess = await webcontainerInstance.spawn('node', ['tcprelay.js']);
     shellProcess.output.pipeTo(
       new WritableStream({
         write(rawData) {
-          console.log('tcprelay', rawData);
+          console.log('FROM RELAY:', rawData);
           try {
             const data = JSON.parse(('' + rawData).trim());
             if (data && (data.method || (data.id && ('result' in data || 'error' in data)))) {
               transport.emit('rpc', data);
             }
           } catch (e) {
-            console.warn(e);
+            // console.warn(e);
           }
         },
       })
@@ -31,8 +32,8 @@ export default async function createNet(webcontainerInstance) {
   
     const input = shellProcess.input.getWriter();
     transport.send = (data) => {
-      console.log('tcprelay send', data);
-      input.write(JSON.stringify(data));
+      console.log('to tcprelay', data);
+      input.write(JSON.stringify(data) + '\n');
     };
   
     return shellProcess;
@@ -41,8 +42,9 @@ export default async function createNet(webcontainerInstance) {
   await tcprelay();
   const peer = rawr({ transport });
 
-  peer.notifiers.on('data', (socketId, data) => {
+  peer.notifications.ondata((socketId, data) => {
     const socket = sockets[socketId];
+    console.log('browser got data', socketId, data);
     if (socket) {
       socket.emit('data', atob(data));
     }
@@ -61,14 +63,9 @@ export default async function createNet(webcontainerInstance) {
     socket.id = b64Id.generateId();
     sockets[socket.id] = socket;
     socket.connect = async function(port, host, clientCallback) {
-      // events.emit(('socket_connect_' + port), {
-      //   port,
-      //   host,
-      //   clientSocket: socket,
-      //   clientCallback,
-      // });
       try {
-        await peer.methods.connect(port, host, socket.id);
+        const result = await peer.methods.connect(port, host, socket.id);
+        console.log('connected to linux port!', result);
         if (clientCallback) {
           clientCallback();
         }

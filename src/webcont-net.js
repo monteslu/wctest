@@ -4,7 +4,7 @@ import b64Id from 'b64id';
 
 
 export default async function createNet(webcontainerInstance) {
-
+  
   const events = new EventEmitter();
   const listeners = {};
   const sockets = {};
@@ -44,9 +44,9 @@ export default async function createNet(webcontainerInstance) {
 
   peer.notifications.ondata((socketId, data) => {
     const socket = sockets[socketId];
-    console.log('browser got data', socketId, data);
+    console.log('browser got data', socketId, typeof data, data, Buffer.from(data, 'base64').toString('utf-8'));
     if (socket) {
-      socket.emit('data', atob(data));
+      socket.emit('data', Buffer.from(data, 'base64')); //atob(data));
     }
   });
 
@@ -80,6 +80,11 @@ export default async function createNet(webcontainerInstance) {
       // if (socket.serverSocket) {
       //   socket.serverSocket.emit('data', message);
       // }
+      // console.log('WEBCONT-NET socket.write bin', message);
+      console.log('WEBCONT-NET socket.write utf8', Buffer.from(message).toString('utf-8'));
+      // console.log('WEBCONT-NET socket.write b64', Buffer.from(message).toString('base64'));
+      // console.log('WEBCONT-NET socket.write btoa', btoa(message));
+
       peer.notifiers.write(socket.id, btoa(message));
     };
 
@@ -115,6 +120,7 @@ export default async function createNet(webcontainerInstance) {
           server.cb(serverSocket);
         }
         serverSocket.write = (data) => {
+          console.log('EMITTING DATA', data);
           clientSocket.emit('data', data);
         }
         serverSocket.end = () => {

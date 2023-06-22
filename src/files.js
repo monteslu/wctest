@@ -15,41 +15,6 @@ const transport = new EventEmitter();
 
 console.log('firing up tcprelay');
 
-const getMsg = \`GET / HTTP/1.1
-User-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)
-Host: localhost
-Accept-Language: en-us
-Accept-Encoding: gzip, deflate
-Connection: Keep-Alive
-
-\`;
-
-// setTimeout(() => {
-//   const sock1 = new net.Socket();
-//   sock1.connect(9000, 'localhost', () => {
-//     console.log('simple web connected to 9000');
-//     sock1.write(getMsg);
-//     // sock1.write('blah blah');
-//     setInterval(() => {
-//       console.log('writing random');
-//       sock1.write('blah' + Math.random());
-//     }, 2000);
-//     console.log('wrote basicGet', getMsg);
-//   });
-//   sock1.on('data', (data) => {
-//     console.log('data from 9000', data.toString());
-//   });
-//   sock1.on('close', () => {
-//     console.log('close from 9000');
-//   });
-//   sock1.on('error', (err) => {
-//     console.log('error from 9000', err);
-//   });
-//   console.log('started sock1');
-// }, 3000);
-
-// const rl = readline.createInterface(process.stdin, process.stdout);
-
 transport.send = (data) => {
   // console.log('tcprelay send', data);
   // input.write();
@@ -68,15 +33,6 @@ process.stdin.on('data', (data) => {
   // data = data.toString().toUpperCase();
   // process.stdout.write(data);
 });
-
-// rl.on('line', (line) => {
-//   try {
-//     const obj = JSON.parse(('' + line).trim());
-//     transport.emit('rpc', obj);
-//   } catch (e) {
-//     // console.warn(e);
-//   }
-// });
 
 function connect(port, host, socketId) {
   console.log('connecting', port, host, socketId);
@@ -104,7 +60,8 @@ function connect(port, host, socketId) {
 function write(socketId, data) {
   const socket = sockets[socketId];
   if (socket) {
-    socket.write(atob(data));
+    // socket.write(atob(data));
+    socket.write(Buffer.from(data, 'base64'));
   }
   return { ok: 'ok' };
 }
@@ -115,7 +72,7 @@ peer.notifications.onwrite((socketId, data) => {
   console.log('relay got data', socketId, data);
   if (sockets[socketId]) {
     console.log('socket available', socketId);
-    sockets[socketId].write(atob(data));
+    sockets[socketId].write(Buffer.from(data, 'base64')); //atob(data));
   }
 });
 

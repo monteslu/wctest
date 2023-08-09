@@ -108,10 +108,13 @@ function App() {
 
         console.log('net', net);
         con = await hsync.dynamicConnect(null, true, { net });
-        // con.serverReplyMethods.addSocketRelay(9000, 'localhost', 9000); // open port to other hsync clients
+        con.serverReplyMethods.addSocketRelay(9000, 'localhost', 9000); // open port to other hsync clients
+        // .serverReplyMethods.addSocketRelay(9000, 'localhost', 9000)
         window.hsyncCon = con;
         console.log('hsync con', con);
         console.log('connect on', con.webUrl);
+        console.log('Admin connection:', con.webAdmin);
+        console.log('Password:', con.hsyncSecret);
       }
     }
     run();

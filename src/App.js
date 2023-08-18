@@ -3,10 +3,14 @@ import { Terminal } from 'xterm'
 import hsync from 'hsync/hsync-web';
 import 'xterm/css/xterm.css';
 import { WebContainer } from '@webcontainer/api';
+import { Buffer } from 'buffer';
+import toast, { Toaster } from 'react-hot-toast';
 
 import './App.css';
 import { files } from './files';
 import createNet from './webcont-net';
+
+window.Buffer = Buffer;
 
 let webcontainerInstance;
 let started = false;
@@ -14,6 +18,10 @@ let started = false;
 async function writeIndexJS(content) {
   await webcontainerInstance.fs.writeFile('/index.js', content);
 };
+
+console.log('hsync', hsync);
+
+const notifyClipboard = () => toast('URL copied to clipboard');
 
 function App() {
   const [taContent, setTaContent] = useState(files['index.js'].file.contents);
@@ -40,6 +48,7 @@ function App() {
 
         const t1Stream = new WritableStream({
           write(data) {
+            console.log('t1Stream write', data);
             terminal.write(data);
           },
         });
@@ -73,7 +82,6 @@ function App() {
           webcontainerInstance.on('server-ready', (port, url) => {
             console.log(`Server is listening on port ${port} and is available at ${url}`);
             iframeEl.current.src = url;
-            setHsyncUrl(con.webUrl);
           });
 
           return serverProcess;
@@ -108,9 +116,11 @@ function App() {
 
         console.log('net', net);
         con = await hsync.dynamicConnect(null, true, { net });
+        con.serverReplyMethods.addSocketRelay(2323, 'localhost', 2323);
         con.serverReplyMethods.addSocketRelay(9000, 'localhost', 9000); // open port to other hsync clients
         // .serverReplyMethods.addSocketRelay(9000, 'localhost', 9000)
         window.hsyncCon = con;
+        setHsyncUrl(con.webUrl);
         console.log('hsync con', con);
         console.log('connect on', con.webUrl);
         console.log('Admin connection:', con.webAdmin);
@@ -141,9 +151,28 @@ function App() {
       </div>
       <div style={ { margin: '5px' }}>
         {hsycnUrl ? (
-          <a href={hsycnUrl} target="_blank" rel="noopener noreferrer">
-            Open here: {hsycnUrl}
-          </a>
+          <div>
+            Open here:
+            <a
+              style={{ margin: '5px' }}
+              href={hsycnUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {hsycnUrl}
+            </a>
+            <img
+              src="/clipboard.svg"
+              height="20"
+              width="20"
+              alt="copy to clipboard"
+              onClick={async () => {
+                await navigator.clipboard.writeText(window.hsyncCon.webUrl);
+                notifyClipboard();
+              }}
+            />
+            <Toaster/>
+          </div>
         ) : ''}
       </div>
       <div className="terminal-container">

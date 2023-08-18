@@ -2,8 +2,7 @@ import { EventEmitter } from 'events';
 import rawr from 'rawr';
 import b64Id from 'b64id';
 
-
-export default async function createNet(webcontainerInstance) {
+export default async function createNet(webcontainerInstance, shellPort = 2323) {
   
   const events = new EventEmitter();
   const listeners = {};
@@ -64,8 +63,31 @@ export default async function createNet(webcontainerInstance) {
     sockets[socket.id] = socket;
     socket.connect = async function(port, host, clientCallback) {
       try {
-        const result = await peer.methods.connect(port, host, socket.id);
-        console.log('connected to linux port!', result);
+        if (port === shellPort) {
+          const t1Stream = new WritableStream({
+            write(data) {
+              // terminal.write(data);
+              // do what with the data?
+              console.log('data from shell', data);
+              socket.emit('data', data); //atob(data));
+            },
+          });
+          const shellProcess = await webcontainerInstance.spawn('jsh');
+          shellProcess.output.pipeTo(t1Stream);
+          
+          socket.shellProcess = shellProcess;
+          socket.shellPort = port;
+          // const input = shellProcess.input.getWriter();
+          // terminal.onData((data) => {
+          //   input.write(data);
+          // });
+        
+          // return shellProcess;
+
+        } else {
+          const result = await peer.methods.connect(port, host, socket.id);
+          console.log('connected to linux port!', result);
+        }
         if (clientCallback) {
           clientCallback();
         }
@@ -84,11 +106,17 @@ export default async function createNet(webcontainerInstance) {
       console.log('WEBCONT-NET socket.write utf8', Buffer.from(message).toString('utf-8'));
       // console.log('WEBCONT-NET socket.write b64', Buffer.from(message).toString('base64'));
       // console.log('WEBCONT-NET socket.write btoa', btoa(message));
-
-      peer.notifiers.write(socket.id, btoa(message));
+      if (socket.shellProcess) {
+        console.log('writing to shell process', message);
+        const str = new TextDecoder().decode(message);
+        socket.shellProcess.input.getWriter().write(str);
+      } else {
+        peer.notifiers.write(socket.id, btoa(message));
+      }
     };
 
     socket.end = async function(clientCallback) {
+      console.log('socket.end', clientCallback);
       // if (socket.serverSocket) {
       //   socket.serverSocket.emit('close');
       // }

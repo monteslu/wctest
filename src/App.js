@@ -81,7 +81,9 @@ function App() {
           // Wait for `server-ready` event
           webcontainerInstance.on('server-ready', (port, url) => {
             console.log(`Server is listening on port ${port} and is available at ${url}`);
-            iframeEl.current.src = url;
+            if (port !== 9000) {
+              iframeEl.current.src = url;
+            }
           });
 
           return serverProcess;

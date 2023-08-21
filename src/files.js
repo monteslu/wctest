@@ -87,6 +87,11 @@ import net from 'net';
 const PORT = 9000;
 
 const socketServer = net.createServer(async (socket) => {
+
+  console.log('new tcp connection');
+
+  socket.write(Buffer.from(\`hello tcp client, what's good?\\n\\r\`));
+
   socket.on('data', async (data) => {
     console.log('received', data.toString());
     socket.write(Buffer.from('back atcha, ' + data.toString()));

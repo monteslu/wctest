@@ -29,10 +29,13 @@ export default async function createNet(webcontainerInstance, shellPort = 2323) 
       })
     );
   
-    const input = shellProcess.input.getWriter();
+    shellProcess.inputWriter = shellProcess.input.getWriter();
     transport.send = (data) => {
       console.log('to tcprelay', data);
-      input.write(JSON.stringify(data) + '\n');
+      if (!shellProcess.inputWriter) {
+        shellProcess.inputWriter = shellProcess.input.getWriter();
+      }
+      shellProcess.inputWriter.write(JSON.stringify(data) + '\n');
     };
   
     return shellProcess;
@@ -109,7 +112,10 @@ export default async function createNet(webcontainerInstance, shellPort = 2323) 
       if (socket.shellProcess) {
         console.log('writing to shell process', message);
         const str = new TextDecoder().decode(message);
-        socket.shellProcess.input.getWriter().write(str);
+        if (!socket.shellProcess.inputWriter) {
+          socket.shellProcess.inputWriter = socket.shellProcess.input.getWriter();
+        }
+        socket.shellProcess.inputWriter.write(str);
       } else {
         peer.notifiers.write(socket.id, btoa(message));
       }

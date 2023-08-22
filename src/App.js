@@ -48,7 +48,7 @@ function App() {
 
         const t1Stream = new WritableStream({
           write(data) {
-            console.log('t1Stream write', data);
+            // console.log('t1Stream write', data);
             terminal.write(data);
           },
         });
